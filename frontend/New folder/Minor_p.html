@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pro Inbox — Phishing Detector UI (Preview)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="Minor_p.css" />
+</head>
+<body>
+  <div id="app" class="app fadeIn">
+    <div class="sidebar" role="navigation">
+      <div class="header">
+        <div class="logo">NS</div>
+        <div>
+          <div class="title">Neuro Sentinel</div>
+          <div class="sub">Phishing Detector — Preview</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="search">
+          <i class="fa fa-magnifying-glass"></i>
+          <input id="search" placeholder="Search mail, sender or subject" />
+        </div>
+        <button id="gmailBtn" class="btn primary" title="Load Gmail inbox" onclick="loadGmail()">Gmail</button>
+        <button id="outlookBtn" class="btn primary" title="Load Outlook inbox" onclick="loadOutlook()" style="background:linear-gradient(90deg,#0563c1,#4a90e2)">Outlook</button>
+      </div>
+
+      <div class="filters">
+        <div class="pill">Sort: <select id="sort" style="margin-left:6px;background:transparent;border:0;color:inherit;outline:none"><option value="desc">Latest</option><option value="asc">Oldest</option></select></div>
+        <div class="pill">Filter: <select id="filter" style="margin-left:6px;background:transparent;border:0;color:inherit;outline:none"><option value="all">All</option><option value="safe">Safe</option><option value="phish">Phish</option></select></div>
+        <div style="margin-left:auto" class="hint">Tip: click an email to view & scan</div>
+      </div>
+
+      <div id="list" class="list" aria-live="polite"></div>
+
+      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+        <div class="hint"><span id="emailCount">0</span> emails loaded</div>
+        <div class="hint">Source: <span id="source">Gmail</span></div>
+      </div>
+    </div>
+
+    <main class="reader" role="main">
+      <div class="readerTop">
+        <div>
+          <div class="subjectLarge" id="openSubject">Select an email to preview</div>
+          <div class="fromRow" id="openFrom">—</div>
+        </div>
+        <div class="topControls">
+          <div class="prediction">
+            <div id="verdictBox" class="verdictCard" style="display:none">
+              <div id="verdictLabel" style="font-weight:700">Prediction</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+                <div>
+                  <div class="prob" id="probVal">0%</div>
+                  <div class="explain" id="probText">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        <div style="display:flex;gap:10px;align-items:center">
+            <div class="toggle hint">Dark mode <div id="dm" class="switch" title="Toggle dark mode"><div class="knob"></div></div></div>
+            <button id="runAllBtn" class="btn styled" title="Scan all emails for phishing">Scan All</button>
+            <button id="scanBtn" class="btn styled">Run Phishing Detection</button>
+            <button id="reload" class="btn styled" title="Reload inbox"><i class="fa fa-arrow-rotate-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="emailBody" id="body">
+        <div class="hint">Open an email from the list on the left. This panel displays the full email and the phishing scan results.</div>
+      </div>
+    </main>
+  </div>
+
+    <script src="Minor_p.js"></script>
+</body>
+</html>

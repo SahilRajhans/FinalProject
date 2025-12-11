@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NeuroSentinel Advanced Inbox</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+/* GLOBAL */
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #f2f4f7;
+    color: #333;
+    transition: 0.3s;
+}
+.dark-mode { background: #1e1e1e; color: #eee; }
+
+/* LAYOUT */
+.container { display: flex; height: 100vh; overflow: hidden; }
+
+/* SIDEBAR */
+.sidebar {
+    width: 30%;
+    background: #fff;
+    border-right: 1px solid #ccc;
+    overflow-y: auto;
+    padding: 10px;
+    
+}
+.dark-mode .sidebar { background: #2c2c2c; border-color: #444; }
+
+/* BUTTON GROUP */
+.switch-buttons {
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+}
+.switch-buttons button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: #0A84FF;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.switch-buttons button:hover {
+    background: #006edc;
+}
+
+/* SEARCH */
+.search-bar { padding: 1px; }
+.search-bar input {
+    width: 90%;
+     padding: 8px;
+     border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+/* EMAIL LIST */
+.email-item {
+    padding: 14px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+.email-item:hover { background: #e9eef3; }
+.dark-mode .email-item:hover { background: #3a3a3a; }
+
+.email-subject { font-weight: 600; }
+.email-sender { font-size: 14px; color: #666; }
+.email-preview { font-size: 13px; color: #777; }
+
+/* MAIN PANEL */
+.main {
+    width: 70%; padding: 25px; overflow-y:auto;
+}
+
+/* EMAIL VIEW */
+.email-view {
+    padding: 20px; background: white; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+.dark-mode .email-view { background: #2c2c2c; }
+
+/* BUTTON */
+button {
+    padding: 12px 20px;
+    background: #4CAF50;
+    border-radius: 8px;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+button:hover { background: #43a047; }
+
+/* RESULTS */
+.result {
+    margin-top: 20px; padding: 20px;
+    border-radius: 12px; display:none;
+}
+.result-safe { background: #e0f7e9; border-left: 5px solid #2ecc71; }
+.result-danger { background: #ffebee; border-left: 5px solid #e53935; }
+
+/* DARK MODE BUTTON */
+.dark-toggle {
+    position: fixed; right: 20px; top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="dark-toggle">
+    <button onclick="toggleDarkMode()">🌙 Dark Mode</button>
+</div>
+
+<div class="container">
+
+    <!-- LEFT PANEL -->
+    <div class="sidebar">
+
+        <!-- SWITCH BUTTONS -->
+        <div class="switch-buttons">
+            <button onclick="loadGmail()">📧 Gmail</button>
+            <button onclick="loadOutlook()">📨 Outlook</button>
+        </div>
+
+        <!-- SEARCH -->
+        <div class="search-bar">
+            <input type="text" id="search" placeholder="Search emails..." onkeyup="filterEmails()">
+        </div>
+
+        <div id="emailList"></div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="main">
+
+        <div id="emailView" class="email-view">
+            <h2>Select an email</h2>
+        </div>
+
+        <button id="predictBtn" style="display:none;" onclick="runPrediction()">Run Phishing Detection</button>
+
+        <div id="resultBox" class="result"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+/* ---------------- CONFIG ---------------- */
+const API_URL = "http://127.0.0.1:8000/predict";
+const GMAIL_API = "http://127.0.0.1:8000/fetch-gmail";
+const OUTLOOK_API = "http://127.0.0.1:8000/fetch-outlook";
+
+let emails = [];
+let selectedEmail = null;
+
+/* ---------------- LOAD INBOX ---------------- */
+async function loadGmail() {
+    const res = await fetch(GMAIL_API);
+    const data = await res.json();
+    emails = data.emails.map(e => ({
+        sender: e.sender,
+        subject: e.subject,
+        preview: e.body.slice(0,40) + "...",
+        body: e.body,
+        url: e.url || ""
+    }));
+    loadEmailList();
+}
+
+async function loadOutlook() {
+    const res = await fetch(OUTLOOK_API);
+    const data = await res.json();
+    emails = data.emails.map(e => ({
+        sender: e.sender,
+        subject: e.subject,
+        preview: e.body.slice(0,40) + "...",
+        body: e.body,
+        url: e.url || ""
+    }));
+    loadEmailList();
+}
+
+/* --------------- RENDER INBOX --------------- */
+function loadEmailList() {
+    const list = document.getElementById("emailList");
+    list.innerHTML = "";
+
+    emails.forEach((email, index) => {
+        let div = document.createElement("div");
+        div.className = "email-item";
+        div.onclick = () => openEmail(index);
+        div.innerHTML = `
+            <div class="email-subject">${email.subject}</div>
+            <div class="email-sender">${email.sender}</div>
+            <div class="email-preview">${email.preview}</div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+/* --------------- OPEN EMAIL --------------- */
+function openEmail(i) {
+    selectedEmail = emails[i];
+
+    document.getElementById("emailView").innerHTML = `
+        <h2>${selectedEmail.subject}</h2>
+        <p><strong>From:</strong> ${selectedEmail.sender}</p>
+        <hr>
+        <div>${selectedEmail.body}</div>
+    `;
+
+    document.getElementById("predictBtn").style.display = "inline-block";
+    document.getElementById("resultBox").style.display = "none";
+}
+
+/* --------------- SEARCH --------------- */
+function filterEmails() {
+    const q = document.getElementById("search").value.toLowerCase();
+    const filtered = emails.filter(e =>
+        e.subject.toLowerCase().includes(q) ||
+        e.sender.toLowerCase().includes(q)
+    );
+    emails = filtered;
+    loadEmailList();
+}
+
+/* ------------- RUN PREDICTION ------------- */
+async function runPrediction() {
+    if (!selectedEmail) return;
+
+    const res = await fetch(API_URL, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify(selectedEmail)
+    });
+
+    const data = await res.json();
+
+    let box = document.getElementById("resultBox");
+    box.style.display = "block";
+
+    box.className = "result " + (data.verdict === "phishing" ? "result-danger" : "result-safe");
+
+    box.innerHTML = `
+        <h3>${data.verdict === "phishing" ? "⚠ PHISHING" : "🟢 SAFE EMAIL"}</h3>
+        <p><strong>Final Probability:</strong> ${(data.phishing_probability*100).toFixed(2)}%</p>
+        <p><strong>Transformer Score:</strong> ${(data.transformer_score*100).toFixed(2)}%</p>
+        <p><strong>Metadata Score:</strong> ${(data.metadata_score*100).toFixed(2)}%</p>
+        <p><strong>Explanation:</strong> ${data.explanation}</p>
+    `;
+}
+
+/* ------------- DARK MODE ------------- */
+function toggleDarkMode() {
+    document.body.classList.toggle("dark-mode");
+}
+
+/* Load Gmail by default */
+loadGmail();
+
+</script>
+
+</body>
+</html>
